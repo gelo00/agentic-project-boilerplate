@@ -1,0 +1,44 @@
+{
+  "$schema": "[suspicious link removed]",
+  "version": "1.0.0",
+  "agents": [
+    {
+      "id": "planner",
+      "name": "Architecture & Spec Planner",
+      "promptFile": ".ai/agents/planner.md",
+      "scope": ["docs/srs/", "docs/architecture/", "docs/adr/"],
+      "outputArtifacts": ["trd.md", "implementation-strategy.md"]
+    },
+    {
+      "id": "fe-engineer",
+      "name": "Frontend & React TS Specialist",
+      "promptFile": ".ai/agents/fe-engineer.md",
+      "scope": ["apps/web/", "packages/contracts/"],
+      "forbiddenPaths": ["apps/api/"],
+      "rules": [
+        "Default to Server Components; use 'use client' only for interactive leaves",
+        "Use Tailwind for layout and Ant Design for data-dense widgets",
+        "Tokens must come from tokens.css; no arbitrary hex codes",
+        "Never import database drivers or server secrets into apps/web"
+      ]
+    },
+    {
+      "id": "be-engineer",
+      "name": "Node.js Backend & API Specialist",
+      "promptFile": ".ai/agents/be-engineer.md",
+      "scope": ["apps/api/", "packages/contracts/"],
+      "forbiddenPaths": ["apps/web/"],
+      "rules": [
+        "Enforce Clean Architecture: Route -> Service -> Repository",
+        "Validate inputs against @workspace/contracts using Zod",
+        "Use Repository Port & Adapter pattern; never leak ORMs into domain services"
+      ]
+    },
+    {
+      "id": "reviewer-qa",
+      "name": "Quality & Verification Gate",
+      "promptFile": ".ai/agents/reviewer-qa.md",
+      "scope": ["apps/", "packages/", "docs/srs/"]
+    }
+  ]
+}
