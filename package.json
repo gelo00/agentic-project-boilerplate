@@ -1,29 +1,36 @@
 {
-  "name": "agentic-monorepo",
+  "name": "agentic-project-boilerplate",
+  "version": "1.0.0",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
-  "overrides": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
   "scripts": {
-    "dev": "npm run dev --workspaces",
-    "build": "npm run build --workspaces",
-    "typecheck": "npm run typecheck --workspaces",
-    "lint": "oxlint && oxfmt --check",
-    "lint:fix": "oxlint --fix && oxfmt",
-    "test": "vitest run",
-    "check": "npm run typecheck && npm run lint && npm run test",
+    "ai:compact": "node scripts/compact-sessions.mjs",
+    "pre-commit": "npm run check && npm run ai:compact",
+    "clean:cache": "node scripts/clean-cache.mjs --all",
+    "clean:cache:web": "node scripts/clean-cache.mjs --web",
+    "clean:cache:api": "node scripts/clean-cache.mjs --api",
+    "clean": "node scripts/clean.mjs",
+    "reset": "npm run clean && npm run setup",
     "setup": "node scripts/bootstrap.mjs && npm install --legacy-peer-deps && npm run check",
-    "bootstrap": "npm run setup"
+    "bootstrap": "npm run setup",
+    "dev": "concurrently -n web,api -c cyan,green \"npm run dev --workspace=@workspace/web\" \"npm run dev --workspace=@workspace/api\"",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "oxlint && oxfmt --check .",
+    "lint:fix": "oxlint --fix && oxfmt .",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm run test"
   },
   "devDependencies": {
+    "@types/node": "26.6.6",
+    "concurrently": "^9.1.2",
     "oxfmt": "^0.1.0",
-    "oxlint": "^0.15.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "oxlint": "^0.15.11",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }

@@ -17,25 +17,20 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200);
     return res.end(JSON.stringify(response));
   }
-
-  if (req.url === '/api/users' && req.method === 'GET') {
-    try {
-      const testUser = await userRepo.findByEmail('test@example.com');
-      const response: ApiResponse<typeof testUser> = {
+  
+  if (req.url === '/' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
         success: true,
-        data: testUser,
-      };
-      res.writeHead(200);
-      return res.end(JSON.stringify(response));
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Internal Server Error';
-      const errorResponse: ApiResponse<never> = {
-        success: false,
-        error: { code: 'SERVER_ERROR', message },
-      };
-      res.writeHead(500);
-      return res.end(JSON.stringify(errorResponse));
-    }
+        message: 'Node.js 22 LTS API Service is active',
+        endpoints: {
+          health: '/api/health',
+        },
+        frontendUrl: 'http://localhost:3000',
+      })
+    );
+    return;
   }
 
   res.writeHead(404);

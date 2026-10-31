@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@workspace/contracts": ["./packages/contracts/src/index.ts"],
+      "@workspace/ai-hub": ["./packages/ai-hub/src/index.ts"],
+    },
   },
   "include": ["src/**/*"]
 }
