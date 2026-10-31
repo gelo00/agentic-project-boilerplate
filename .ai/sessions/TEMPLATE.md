@@ -4,6 +4,11 @@
 - **Persona Assumed**: Principal Frontend Engineer | Principal Backend Engineer
 - **Status**: Completed | In Progress | Blocked
 
+### Traceability & Living Specs
+- **SRS Requirement Addressed**: [e.g., REQ-FR-001]
+- **arc42 Section Updated**: [e.g., 05_building_block_view.md]
+- **ADR Reference**: [e.g., ADR-002]
+
 ## 1. Intent & Specs Consulted
 - Living specs: `docs/specs/srs/` or `docs/specs/arc42/`
 - Prior context: `.ai/memory.md`
@@ -21,3 +26,5 @@
 
 ## 4. Learnings & Memory Updates
 - Any discovered pattern appended to `.ai/memory.md`
+
+

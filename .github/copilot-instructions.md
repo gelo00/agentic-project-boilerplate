@@ -1,5 +1,3 @@
-# GitHub Copilot Workspace Directives
-
 ## 1. Monorepo Architecture & Invariants
 - **Stack & Environment**: TypeScript 5.7+, Node.js 22 LTS, single-root hoisted dependencies governed by a single root `package-lock.json`. Never run `npm install` inside subdirectories.
 - **Shared Contracts (`packages/contracts`)**: Single Source of Truth for shared DTOs, API models, and Zod validation schemas. Never duplicate interfaces across `apps/web` or `apps/api`.
@@ -8,18 +6,23 @@
 
 ---
 
-## 2. Centralized Session Logging (Single Source of Truth)
+## 2. Centralized Session Logging & Memory
 To prevent fragmented memory and keep **GitHub Copilot** and **Antigravity** fully synchronized:
 - **Canonical Session Directory**: **`.ai/sessions/`** is the **ONLY** authorized location for recording session summaries and task history. Never write logs to `.copilot/` or `.agent/sessions/`.
 - **Pre-Task Check (Read First)**:
   1. Inspect `.ai/memory.md` to review established project conventions, invariants, and historical architectural patterns.
   2. Inspect the latest files in `.ai/sessions/` to inherit context and decisions from previous Copilot or Antigravity sessions before starting work.
+  3. Consult living specifications in `docs/specs/srs/` and `docs/specs/arc42/` to ensure full alignment with project requirements.
 - **Post-Task Audit (Write on Completion)**:
   - When completing any multi-step task, refactoring session, or feature implementation, record or append a timestamped audit markdown log to:
     ```text
     .ai/sessions/YYYY-MM-DD-<task-name>.md
     ```
-  - Follow the structure defined in `.ai/sessions/TEMPLATE.md`.
+  - Follow the structure defined in `.ai/sessions/TEMPLATE.md`, documenting:
+    - Persona adopted (`.ai/roles/`).
+    - Living documentation referenced (`docs/specs/srs/`, `docs/specs/arc42/`, or `docs/specs/adr/`).
+    - Files created or modified.
+    - Verification output (`npm run check`).
 
 ---
 
@@ -53,5 +56,3 @@ Whenever generating, editing, or auditing code, adopt the specialized persona ba
         │
         ▼ (OWASP A05 / LLM06: Error masking & standardized JSON envelopes)
   [HTTP Response]
-  ```
-- **Database Strategy**: Schemas reside strictly in `apps/api/src/db/schema.ts`, migrations in `apps/api/src/db/migrations/`, supporting pluggable drivers via `DB_DRIVER`.
