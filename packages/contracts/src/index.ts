@@ -6,7 +6,7 @@ export const UserLoginSchema = z.object({
 });
 export type UserLoginInput = z.infer<typeof UserLoginSchema>;
 
-export interface ApiResponse<T> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {

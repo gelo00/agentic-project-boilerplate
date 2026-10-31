@@ -16,7 +16,9 @@
     "lint": "oxlint && oxfmt --check",
     "lint:fix": "oxlint --fix && oxfmt",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run lint && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "setup": "node scripts/bootstrap.mjs && npm install --legacy-peer-deps && npm run check",
+    "bootstrap": "npm run setup"
   },
   "devDependencies": {
     "oxfmt": "^0.1.0",
