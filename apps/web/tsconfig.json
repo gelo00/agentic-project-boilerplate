@@ -1,18 +1,35 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
+ "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+
+    /* Bundler mode & Hoisted Node Modules Lookup */
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+
+    /* Strict Type-Checking Options */
     "strict": true,
-    "rootDir": "src"
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Paths & Scoping */
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@workspace/contracts": ["../../packages/contracts/src/index.ts"],
+      "@workspace/ai-hub": ["../../packages/ai-hub/src/index.ts"]
+    }
   },
   "include": ["src"]
+
 }

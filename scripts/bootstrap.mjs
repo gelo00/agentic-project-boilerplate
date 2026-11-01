@@ -944,7 +944,58 @@ if (existsSync(packageJsonPath)) {
   console.log('   ✅ [Created] Root package.json created with complete pre-commit hooks.');
 }
 
-// 11. Automated Git Hook Initialization
+
+// 11. Vite Configuration Hardening (Prevent apps/web/node_modules generation during npm run dev)
+console.log('\n⚡ Verifying apps/web/vite.config.ts cache directory...');
+const viteConfigPath = join(ROOT_DIR, 'apps/web/vite.config.ts');
+const canonicalViteConfig = `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig({
+  plugins: [react()],
+  // 🔒 Prevent local node_modules generation: redirect Vite pre-bundle cache to monorepo root
+  cacheDir: path.resolve(__dirname, '../../node_modules/.vite/web'),
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@workspace/contracts': path.resolve(__dirname, '../../packages/contracts/src/index.ts'),
+      '@workspace/ai-hub': path.resolve(__dirname, '../../packages/ai-hub/src/index.ts'),
+    },
+  },
+  server: {
+    port: 3000,
+    strictPort: true,
+  },
+});
+`;
+
+if (existsSync(viteConfigPath)) {
+  const existingVite = readFileSync(viteConfigPath, 'utf-8');
+  if (!existingVite.includes('cacheDir')) {
+    // Inject cacheDir right after plugins: [react()],
+    if (existingVite.includes('plugins: [react()],')) {
+      const updatedVite = existingVite.replace(
+        'plugins: [react()],',
+        `plugins: [react()],\n  // 🔒 Prevent local node_modules generation: redirect Vite pre-bundle cache to monorepo root\n  cacheDir: path.resolve(__dirname, '../../node_modules/.vite/web'),`
+      );
+      writeFileSync(viteConfigPath, updatedVite, 'utf-8');
+      console.log('   ✅ [Updated] Injected cacheDir into apps/web/vite.config.ts.');
+    } else {
+      writeFileSync(viteConfigPath, canonicalViteConfig, 'utf-8');
+      console.log('   ✅ [Updated] Rewrote apps/web/vite.config.ts with canonical cacheDir.');
+    }
+  } else {
+    console.log('   ✅ [Verified] apps/web/vite.config.ts already configures cacheDir.');
+  }
+} else {
+  ensureFile('apps/web/vite.config.ts', canonicalViteConfig);
+}
+
+// 12. Automated Git Hook Initialization
 const gitDirPath = join(ROOT_DIR, '.git');
 if (existsSync(gitDirPath)) {
   console.log('\n🪝 Initializing Git Hooks via simple-git-hooks...');
