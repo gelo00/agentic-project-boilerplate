@@ -1,28 +1,26 @@
+# GitHub Copilot Workspace Directives
+
 ## 1. Monorepo Architecture & Invariants
-- **Stack & Environment**: TypeScript 5.7+, Node.js 22 LTS, single-root hoisted dependencies governed by a single root `package-lock.json`. Never run `npm install` inside subdirectories.
+- **Stack & Environment**: TypeScript 5.7+, Node.js 22 LTS, single-root hoisted dependencies governed by a single root `package-lock.json`.
+- **Zero Nested node_modules Invariant**: Never run `npm install` inside `apps/web`, `apps/api`, or `packages/*`, and never permit or generate a nested `node_modules/` folder in any child directory. All dependencies must reside strictly in root `node_modules/`. Installing dependencies inside child workspaces causes duplicate singletons and context degradation.
 - **Shared Contracts (`packages/contracts`)**: Single Source of Truth for shared DTOs, API models, and Zod validation schemas. Never duplicate interfaces across `apps/web` or `apps/api`.
 - **Centralized AI Runtime (`packages/ai-hub`)**: All runtime AI features (model routing, prompt templates, schemas, and provider adapters) must be consumed via `@workspace/ai-hub`. Never hardcode direct SDK calls (OpenAI, Anthropic, Gemini) in controllers.
 - **Verification Gates**: Every generated or refactored file must pass `npm run check` (typecheck + lint) with 0 errors.
 
 ---
 
-## 2. Centralized Session Logging & Memory
+## 2. Centralized Session Logging (Single Source of Truth)
 To prevent fragmented memory and keep **GitHub Copilot** and **Antigravity** fully synchronized:
 - **Canonical Session Directory**: **`.ai/sessions/`** is the **ONLY** authorized location for recording session summaries and task history. Never write logs to `.copilot/` or `.agent/sessions/`.
 - **Pre-Task Check (Read First)**:
   1. Inspect `.ai/memory.md` to review established project conventions, invariants, and historical architectural patterns.
   2. Inspect the latest files in `.ai/sessions/` to inherit context and decisions from previous Copilot or Antigravity sessions before starting work.
-  3. Consult living specifications in `docs/specs/srs/` and `docs/specs/arc42/` to ensure full alignment with project requirements.
 - **Post-Task Audit (Write on Completion)**:
   - When completing any multi-step task, refactoring session, or feature implementation, record or append a timestamped audit markdown log to:
     ```text
     .ai/sessions/YYYY-MM-DD-<task-name>.md
     ```
-  - Follow the structure defined in `.ai/sessions/TEMPLATE.md`, documenting:
-    - Persona adopted (`.ai/roles/`).
-    - Living documentation referenced (`docs/specs/srs/`, `docs/specs/arc42/`, or `docs/specs/adr/`).
-    - Files created or modified.
-    - Verification output (`npm run check`).
+  - Follow the structure defined in `.ai/sessions/TEMPLATE.md`.
 
 ---
 
@@ -56,3 +54,5 @@ Whenever generating, editing, or auditing code, adopt the specialized persona ba
         │
         ▼ (OWASP A05 / LLM06: Error masking & standardized JSON envelopes)
   [HTTP Response]
+  ```
+- **Database Strategy**: Schemas reside strictly in `apps/api/src/db/schema.ts`, migrations in `apps/api/src/db/migrations/`, supporting pluggable drivers via `DB_DRIVER`.

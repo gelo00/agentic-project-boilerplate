@@ -6,7 +6,7 @@
  * and centralized .ai session logging templates.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,6 +66,22 @@ function ensureCopy(templateRelPath, destRelPath) {
 }
 
 console.log('\n🔒 Scaffolding AI Governance & Specialist Role Directives...');
+
+// 1.5. Root .npmrc (Force Single-Root Hoisting Invariant)
+console.log('\n⚙️ Enforcing strict root dependency hoisting via .npmrc...');
+const npmrcContent = [
+  '# ==============================================================================',
+  '# MONOREPO SINGLE-ROOT HOISTING CONFIGURATION',
+  '# ==============================================================================',
+  '# Enforces single-root dependency hoisting governed by root package-lock.json.',
+  '# Prevents npm from creating isolated nested node_modules inside apps/ or packages/.',
+  'install-strategy=hoisted',
+  'legacy-peer-deps=true',
+  'save-exact=true',
+  ''
+].join('\n');
+
+ensureFile('.npmrc', npmrcContent, true);
 
 // 2. .ai/roles/frontend-specialist.md
 ensureFile(
@@ -757,6 +773,189 @@ ensureCopy('packages/ai-hub/.env.example', 'packages/ai-hub/.env');
 
 ensureCopy('apps/web/.env.example', 'apps/web/.env');
 ensureCopy('apps/api/.env.example', 'apps/api/.env');
+
+// 8.5. Provision scripts/check-nested-modules.mjs for CI & pre-commit gates
+ensureFile(
+  'scripts/check-nested-modules.mjs',
+  `/**
+ * @file scripts/check-nested-modules.mjs
+ * @description Pre-commit and CI verification gate ensuring zero nested node_modules exist.
+ */
+import { existsSync, rmSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const ROOT_DIR = resolve(__dirname, '..');
+
+const WORKSPACES = [
+  'apps/web',
+  'apps/api',
+  'packages/contracts',
+  'packages/ai-hub',
+];
+
+const shouldAutoFix = process.argv.includes('--fix');
+const violations = [];
+
+for (const ws of WORKSPACES) {
+  const target = join(ROOT_DIR, ws, 'node_modules');
+  if (existsSync(target)) {
+    if (shouldAutoFix) {
+      try {
+        rmSync(target, { recursive: true, force: true });
+        console.log(\`[Auto-Fixed] Purged nested node_modules in \${ws}\`);
+      } catch (err) {
+        violations.push(\`\${ws}/node_modules (failed to remove: \${err.message})\`);
+      }
+    } else {
+      violations.push(\`\${ws}/node_modules\`);
+    }
+  }
+}
+
+if (violations.length > 0) {
+  console.error('\\n❌ [INVARIANT VIOLATION] Nested node_modules detected in sub-workspaces:');
+  for (const item of violations) {
+    console.error(\`   - \${item}\`);
+  }
+  console.error('\\nDependencies must be hoisted exclusively to the monorepo root.');
+  console.error('Run: npm run clean && npm install\\n');
+  process.exit(1);
+} else {
+  console.log('✅ [CHECK PASSED] Single-root dependency hoisting verified (0 nested node_modules).');
+  process.exit(0);
+}
+`,
+  true
+);
+
+// 9. Nested node_modules Invariant Audit
+console.log('\n🔍 Auditing workspace boundaries for nested node_modules...');
+const SUB_WORKSPACES = ['apps/web', 'apps/api', 'packages/contracts', 'packages/ai-hub'];
+let nestedFound = false;
+
+for (const ws of SUB_WORKSPACES) {
+  const nestedNodeModules = join(ROOT_DIR, ws, 'node_modules');
+  if (existsSync(nestedNodeModules)) {
+    console.error('❌ Invariant Violation: Nested node_modules found in ' + ws + '/node_modules!');
+    console.error('   Purging nested node_modules to restore hoisted invariants...');
+    try {
+      rmSync(nestedNodeModules, { recursive: true, force: true });
+      console.log('   [Purged] ' + ws + '/node_modules');
+    } catch (e) {
+      console.warn('   [Warning] Could not purge ' + ws + '/node_modules: ' + e.message);
+    }
+    nestedFound = true;
+  }
+}
+
+if (!nestedFound) {
+  console.log('   ✅ Monorepo is clean: Zero nested node_modules detected.');
+}
+
+
+
+// 10. Root package.json & Git Hook Integration
+console.log('\n📦 Integrating Pre-Commit Lint Checker & Git Hook Configuration into package.json...');
+const packageJsonPath = join(ROOT_DIR, 'package.json');
+
+if (existsSync(packageJsonPath)) {
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+
+    // Ensure scripts exist
+    pkg.scripts = pkg.scripts || {};
+    pkg.scripts.prepare = 'simple-git-hooks';
+    pkg.scripts['check:modules'] = 'node scripts/check-nested-modules.mjs';
+    pkg.scripts['clean:modules'] = 'node scripts/check-nested-modules.mjs --fix';
+    pkg.scripts['check:lint'] = 'oxlint apps/ packages/ && oxfmt --check apps/ packages/';
+    pkg.scripts['lint:fix'] = 'oxlint --fix && oxfmt --write';
+    pkg.scripts['check:types'] = 'tsc -b packages/contracts packages/ai-hub apps/api apps/web';
+    pkg.scripts.check = 'npm run check:modules && npm run check:types && npm run check:lint';
+
+    // Ensure simple-git-hooks configuration
+    pkg['simple-git-hooks'] = {
+      'pre-commit': 'npm run check:modules && npx lint-staged && npm run check:types'
+    };
+
+    // Ensure lint-staged configuration targeting frontend, backend, contracts, ai-hub, and configs
+    pkg['lint-staged'] = {
+      'apps/web/**/*.{ts,tsx}': ['oxlint --fix'],
+      'apps/api/**/*.{ts,js}': ['oxlint --fix'],
+      'packages/**/*.{ts,js}': ['oxlint --fix']
+    };
+
+    // Ensure devDependencies include hook & lint tooling
+    pkg.devDependencies = pkg.devDependencies || {};
+    const requiredDevDeps = ['simple-git-hooks', 'lint-staged', 'oxlint', 'oxfmt'];
+    let devDepsAdded = false;
+    for (const dep of requiredDevDeps) {
+      if (!pkg.devDependencies[dep]) {
+        pkg.devDependencies[dep] = '^0.0.0';
+        devDepsAdded = true;
+      }
+    }
+
+    writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
+    console.log('   ✅ [Updated] Root package.json configured with simple-git-hooks & lint-staged.');
+  } catch (err) {
+    console.warn('   ⚠️ [Warning] Could not update root package.json: ' + err.message);
+  }
+} else {
+  // If package.json does not exist yet, scaffold it with full configuration
+  const defaultPkg = {
+    name: 'agentic-monorepo',
+    private: true,
+    workspaces: ['apps/*', 'packages/*'],
+    scripts: {
+      prepare: 'simple-git-hooks',
+      setup: 'node scripts/bootstrap.mjs && node scripts/check-nested-modules.mjs --fix && npm install --install-strategy=hoisted --legacy-peer-deps && node scripts/check-nested-modules.mjs --fix && npm run check',
+      dev: 'concurrently -k -p "[{name}]" -n "web,api" -c "cyan.bold,green.bold" "npm run dev:web" "npm run dev:api"',
+      'dev:web': 'npm run dev --workspace=@workspace/web',
+      'dev:api': 'npm run dev --workspace=@workspace/api',
+      lint: 'oxlint',
+      'lint:fix': 'oxlint --fix && oxfmt --write',
+      'check:modules': 'node scripts/check-nested-modules.mjs',
+      'clean:modules': 'node scripts/check-nested-modules.mjs --fix',
+      'check:lint': 'oxlint apps/ packages/ && oxfmt --check apps/ packages/',
+      'check:types': 'tsc -b packages/contracts packages/ai-hub apps/api apps/web',
+      check: 'npm run check:modules && npm run check:types && npm run check:lint'
+    },
+    'simple-git-hooks': {
+      'pre-commit': 'npm run check:modules && npx lint-staged && npm run check:types'
+    },
+    'lint-staged': {
+      'apps/web/**/*.{ts,tsx}': ['oxlint --fix'],
+      'apps/api/**/*.{ts,js}': ['oxlint --fix'],
+      'packages/**/*.{ts,js}': ['oxlint --fix']
+    },
+    devDependencies: {
+      'simple-git-hooks': '^0.11.1',
+      'lint-staged': '^15.4.3',
+      oxlint: '^0.15.11',
+      oxfmt: '^0.0.19',
+      concurrently: '^9.1.2',
+      typescript: '^5.7.3'
+    }
+  };
+  writeFileSync(packageJsonPath, JSON.stringify(defaultPkg, null, 2) + '\n', 'utf-8');
+  console.log('   ✅ [Created] Root package.json created with complete pre-commit hooks.');
+}
+
+// 11. Automated Git Hook Initialization
+const gitDirPath = join(ROOT_DIR, '.git');
+if (existsSync(gitDirPath)) {
+  console.log('\n🪝 Initializing Git Hooks via simple-git-hooks...');
+  try {
+    const { execSync } = await import('node:child_process');
+    execSync('npx simple-git-hooks', { cwd: ROOT_DIR, stdio: 'inherit' });
+    console.log('   ✅ Git pre-commit hooks installed successfully.');
+  } catch (e) {
+    console.log('   ℹ️ Note: Run "npx simple-git-hooks" after "npm install" to finalize hook symlinks.');
+  }
+}
 
 console.log('\n✨ Workspace bootstrap and AI governance scaffolding completed successfully!');
 console.log('👉 Next Steps:');

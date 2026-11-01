@@ -5,7 +5,7 @@
   1. Read **`.ai/memory.md`** to review immutable architecture rules, conventions, and established repository patterns.
   2. Scan recent logs in **`.ai/sessions/`** (`YYYY-MM-DD-*.md`) to understand the current task state and inherit context from previous agent decisions.
 - **Plan First, Implement Second**: For multi-file features or refactors, consult the living specifications in `docs/specs/srs/` (IEEE 830) and `docs/specs/arc42/`, then document your plan before modifying code.
-- **Strict Single-Root Monorepo**: Never run `npm install` inside sub-workspaces (`apps/*` or `packages/*`). Maintain a single root `package-lock.json` with hoisted dependencies.
+- **Strict Single-Root Monorepo & Zero Nested node_modules Invariant**: Never run `npm install`, `npm i`, `yarn`, or `pnpm` inside child directories (`apps/web`, `apps/api`, or `packages/*`). Never create or generate a nested `node_modules/` folder inside any sub-workspace. All dependencies must be hoisted exclusively to the root `node_modules/` governed by a single root `package-lock.json`. Installing dependencies inside subdirectories violates repository invariants, breaks singletons (React, Ant Design), and causes context pollution for AI agents.
 - **Verification Gates**: Every proposed change must pass `npm run check` (typecheck + lint) with zero errors.
 - **Specialized Persona Activation from `.ai/roles/`**:
   - When editing client/UI code (`apps/web/**`), strictly assume the persona and rules in **`.ai/roles/frontend-specialist.md`**.

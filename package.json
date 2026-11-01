@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "clean:modules": "node scripts/check-nested-modules.mjs --fix",
     "check:modules": "node scripts/check-nested-modules.mjs",
     "check": "npm run check:modules && npm run check:types && npm run check:lint",
     "ai:compact": "node scripts/compact-sessions.mjs",
@@ -17,20 +18,39 @@
     "clean:cache:api": "node scripts/clean-cache.mjs --api",
     "clean": "node scripts/clean.mjs",
     "reset": "npm run clean && npm run setup",
-    "setup": "node scripts/bootstrap.mjs && npm install --legacy-peer-deps && npm run check",
+    "setup": "node scripts/bootstrap.mjs && node scripts/check-nested-modules.mjs --fix && npm install --install-strategy=hoisted --legacy-peer-deps && node scripts/check-nested-modules.mjs --fix && npm run check",
     "bootstrap": "npm run setup",
     "dev": "concurrently -n web,api -c cyan,green \"npm run dev --workspace=@workspace/web\" \"npm run dev --workspace=@workspace/api\"",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "oxlint && oxfmt --check .",
-    "lint:fix": "oxlint --fix && oxfmt .",
-    "test": "vitest run"
+    "lint:fix": "oxlint --fix && oxfmt --write",
+    "test": "vitest run",
+    "prepare": "simple-git-hooks",
+    "check:lint": "oxlint apps/ packages/ && oxfmt --check apps/ packages/",
+    "check:types": "tsc -b packages/contracts packages/ai-hub apps/api apps/web"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run check:modules && npx lint-staged && npm run check:types"
+  },
+  "lint-staged": {
+    "apps/web/**/*.{ts,tsx}": [
+      "oxlint --fix"
+    ],
+    "apps/api/**/*.{ts,js}": [
+      "oxlint --fix"
+    ],
+    "packages/**/*.{ts,js}": [
+      "oxlint --fix"
+    ]
   },
   "devDependencies": {
     "@types/node": "26.6.6",
     "concurrently": "^9.1.2",
-    "oxfmt": "^0.1.0",
-    "oxlint": "^0.15.11",
+    "lint-staged": "17.6.0",
+    "oxfmt": "0.1.0",
+    "oxlint": "0.15.15",
+    "simple-git-hooks": "2.14.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
   }
