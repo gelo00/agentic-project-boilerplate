@@ -8,6 +8,8 @@
     "packages/*"
   ],
   "scripts": {
+    "check:modules": "node scripts/check-nested-modules.mjs",
+    "check": "npm run check:modules && npm run check:types && npm run check:lint",
     "ai:compact": "node scripts/compact-sessions.mjs",
     "pre-commit": "npm run check && npm run ai:compact",
     "clean:cache": "node scripts/clean-cache.mjs --all",
@@ -22,8 +24,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "oxlint && oxfmt --check .",
     "lint:fix": "oxlint --fix && oxfmt .",
-    "test": "vitest run",
-    "check": "npm run typecheck && npm run lint && npm run test"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
