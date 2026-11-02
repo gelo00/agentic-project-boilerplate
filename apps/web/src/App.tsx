@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { Card, Button, Typography, Tag, Space, Row, Col, Badge } from 'antd';
 import { 
   RocketOutlined, 
   ApiOutlined, 
   SafetyCertificateOutlined, 
   ThunderboltOutlined,
-  GithubOutlined
 } from '@ant-design/icons';
 
 const { Title, Paragraph, Text } = Typography;

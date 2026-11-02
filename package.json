@@ -8,9 +8,11 @@
     "packages/*"
   ],
   "scripts": {
-    "clean:modules": "node scripts/check-nested-modules.mjs --fix",
-    "check:modules": "node scripts/check-nested-modules.mjs",
+    "preinstall": "node scripts/ensure-root-install.mjs",
+    "clean:modules": "node scripts/check-duplicate-packages.mjs --fix",
+    "check:modules": "node scripts/check-duplicate-packages.mjs",
     "check": "npm run check:modules && npm run check:types && npm run check:lint",
+    "setup": "node scripts/bootstrap.mjs && node scripts/check-duplicate-packages.mjs --fix && npm install --install-strategy=hoisted --legacy-peer-deps && node scripts/check-duplicate-packages.mjs --fix && npm run check",
     "ai:compact": "node scripts/compact-sessions.mjs",
     "pre-commit": "npm run check && npm run ai:compact",
     "clean:cache": "node scripts/clean-cache.mjs --all",
@@ -18,7 +20,6 @@
     "clean:cache:api": "node scripts/clean-cache.mjs --api",
     "clean": "node scripts/clean.mjs",
     "reset": "npm run clean && npm run setup",
-    "setup": "node scripts/bootstrap.mjs && node scripts/check-nested-modules.mjs --fix && npm install --install-strategy=hoisted --legacy-peer-deps && node scripts/check-nested-modules.mjs --fix && npm run check",
     "bootstrap": "npm run setup",
     "dev": "concurrently -k -p \"[{name}]\" -n \"web,api\" -c \"cyan.bold,green.bold\" \"npm run dev:web\" \"npm run dev:api\"",
     "dev:web": "npm run dev --workspace=@workspace/web",
@@ -47,13 +48,37 @@
     ]
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.3",
+    "@types/ioredis": "4.28.10",
     "@types/node": "26.6.6",
+    "@types/pg": "^8.11.11",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
+    "drizzle-kit": "^0.30.4",
     "lint-staged": "17.6.0",
     "oxfmt": "0.1.0",
     "oxlint": "0.15.15",
+    "postcss": "^8.5.1",
     "simple-git-hooks": "2.14.0",
+    "tailwindcss": "^4.0.3",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
+    "vite": "^6.1.0",
     "vitest": "^3.0.5"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.5.2",
+    "@workspace/ai-hub": "*",
+    "@workspace/contracts": "*",
+    "antd": "^5.23.4",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.39.1",
+    "ioredis": "6.0.0",
+    "pg": "^8.13.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1"
   }
 }

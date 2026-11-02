@@ -1,260 +1,196 @@
-# 🌐 Agentic Full-Stack Monorepo Boilerplate
-> **Production-Grade Dual-Audience Architecture for Human Engineers & Autonomous AI Agents**  
-> *Vite 6 • React 19 • Tailwind CSS v4 • Ant Design 5 • Node.js 22 LTS • Drizzle ORM • Centralized AI Hub • Living Specs (IEEE 830, arc42, ADRs)*
+# Agentic Full-Stack Monorepo
 
----
+A production-oriented TypeScript monorepo designed for human developers and AI coding agents. It combines a Vite/React frontend, a Node.js API, shared contracts, pluggable persistence and caching, and a centralized AI runtime.
 
-## 📑 Table of Contents
-1. [Executive Overview & Dual-Audience Philosophy](#1-executive-overview--dual-audience-philosophy)
-2. [Monorepo Workspace Architecture](#2-monorepo-workspace-architecture)
-3. [Centralized AI Architecture & Runtime Governance](#3-centralized-ai-architecture--runtime-governance)
-4. [Living Architectural Specifications Framework](#4-living-architectural-specifications-framework)
-5. [Quickstart & Developer Operations](#5-quickstart--developer-operations)
-6. [Comprehensive Git Guide & Quality Verification Gates](#6-comprehensive-git-guide--quality-verification-gates)
-7. [Database Architecture & Pluggable Storage](#7-database-architecture--pluggable-storage)
-8. [Architectural Invariants & Golden Rules](#8-architectural-invariants--golden-rules)
+## Stack
 
----
+- Node.js 22 LTS and TypeScript 5.7+
+- Vite 6 and React 19 frontend
+- Tailwind CSS 4 and Ant Design 5
+- Node HTTP API with TSX
+- Drizzle ORM and PostgreSQL or an in-memory repository
+- Redis or an in-memory cache adapter
+- Zod contracts in a shared workspace package
+- Centralized AI model routing in `@workspace/ai-hub`
+- npm workspaces with one root lockfile and hoisted dependencies
 
-## 1. Executive Overview & Dual-Audience Philosophy
-
-This repository is engineered from the ground up as a **dual-audience platform**: an industrial-strength web application for human software engineers that simultaneously functions as an unambiguous, context-preserving environment for **autonomous AI coding assistants** (GitHub Copilot, Antigravity, Claude Code, Cursor).
-
-### The Dual-Audience Operating Principles
-- **Zero Context Drift**: Autonomous agents lose context when dependencies or conventions are scattered. All long-term repository rules are consolidated in `.ai/memory.md`, with completed task logs audited in `.ai/sessions/`.
-- **Contracts-First Boundaries**: Neither the frontend (`apps/web`) nor the backend (`apps/api`) defines ad-hoc interfaces or loose types. All Data Transfer Objects (DTOs), Zod validation schemas, and API envelopes are strictly governed by `packages/contracts`.
-- **Strict Single-Root Hoisted Dependency Tree**: A single root `package-lock.json` and root `/node_modules/` govern the entire workspace. Subdirectories never maintain independent lockfiles or isolated `node_modules/`, preventing duplicate singletons (React, Ant Design) and preventing AI context degradation.
-- **OWASP-Hardened Defense in Depth**: Runtime model calls are isolated in `packages/ai-hub` to enforce OWASP LLM Top 10 defenses (LLM01 Prompt Injection, LLM02 Insecure Output Handling, LLM04 Model Resource Exhaustion, LLM06 Sensitive Information Disclosure).
-- **Automated Pre-Commit Quality & Invariant Gates**: Git hooks powered by `simple-git-hooks` and `lint-staged` run invariant checks (`check:modules`), targeted linter fixes (`oxlint --fix`), and TypeScript project reference verification (`check:types`) before commits enter version control.
-
----
-
-## 2. Monorepo Workspace Architecture
-
-The workspace is organized into clear application boundaries, shared foundational packages, centralized AI governance, and version-controlled architectural specifications:
+## Repository Layout
 
 ```text
-.
-├── .ai/                             # Single Source of Truth for Developer Agent Governance
-│   ├── memory.md                    # Living architectural invariants & long-term repository rules
-│   ├── roles/                       # Specialized OWASP-hardened persona directives
-│   │   ├── frontend-specialist.md   # Vite 6, React 19, Tailwind v4, Ant Design 5, DRY hierarchy, a11y
-│   │   └── backend-specialist.md    # Clean Architecture, SOLID, Node 22, Drizzle ORM, error classes
-│   └── sessions/                    # Shared audit trail for Copilot, Antigravity & human developers
-│       ├── TEMPLATE.md              # Standardized post-task session audit template
-│       ├── archive/                 # Compacted historical sessions (automated by scripts/compact-sessions.mjs)
-│       └── YYYY-MM-DD-<task>.md     # Timestamped task logs
-│
-├── apps/
-│   ├── web/                         # Client Frontend Application (Vite Dev Port 3000)
-│   │   ├── src/                     # React 19 SPA (components, hooks, App.tsx, main.tsx)
-│   │   ├── index.html               # Single Page Application HTML entrypoint
-│   │   ├── postcss.config.mjs       # Tailwind CSS v4 PostCSS driver
-│   │   ├── vite.config.ts           # Vite 6 configuration (strict path resolution)
-│   │   ├── tsconfig.json            # Browser-scoped TypeScript configuration (rootDir: "src")
-│   │   ├── .env.example             # Frontend environment template (VITE_API_URL)
-│   │   └── package.json             # @workspace/web (NO local node_modules permitted)
-│   │
-│   └── api/                         # Backend Application Service (Express Port 4000)
-│       ├── src/
-│       │   ├── db/                  # Pluggable persistence layer (schema.ts, migrations, factory.ts)
-│       │   ├── routes/              # Express route handlers (/api/health, /api/ai)
-│       │   └── index.ts             # Server entrypoint (Node.js 22 LTS, TSX runner)
-│       ├── drizzle.config.ts        # Drizzle ORM configuration (pluggable drivers)
-│       ├── tsconfig.json            # Server-scoped TypeScript configuration (rootDir: "src")
-│       ├── .env.example             # API environment template (PORT, DB_DRIVER, DATABASE_URL)
-│       └── package.json             # @workspace/api (NO local node_modules permitted)
-│
-├── packages/
-│   ├── contracts/                   # Shared Single Source of Truth for Contracts & DTOs
-│   │   ├── src/
-│   │   │   ├── schemas/             # Strict Zod schemas (health.ts, ai.ts)
-│   │   │   └── index.ts             # Barrel export of DTOs, schemas, and inferred TypeScript types
-│   │   ├── tsconfig.json            # Pure TypeScript configuration
-│   │   └── package.json             # @workspace/contracts
-│   │
-│   └── ai-hub/                      # Centralized Application AI Runtime Engine
-│       ├── src/
-│       │   ├── config.ts            # Typed environment configuration (profile routing, timeouts)
-│       │   ├── prompts.ts           # Centralized system prompts & persona instructions
-│       │   ├── schemas.ts           # ChatMessage, GenerateRequest, GenerateResponse Zod contracts
-│       │   ├── client.ts            # AIHubClient (Ollama, Claude, OpenAI, Gemini, mock)
-│       │   └── index.ts             # Barrel export of client singleton and configurations
-│       ├── tsconfig.json            # Node-scoped TypeScript config (types: ["node"])
-│       ├── .env.example             # Runtime AI profile & API key configuration
-│       └── package.json             # @workspace/ai-hub
-│
-├── docs/                            # Living Architectural Specifications
-│   └── specs/
-│       ├── srs/                     # IEEE 830 / ISO 29148 Software Requirements Specification
-│       │   ├── srs.md               # Functional & non-functional system requirements
-│       │   └── traceability-matrix.md # Requirement-to-test verification mapping
-│       ├── arc42/                   # arc42 Pragmatic Architecture Documentation
-│       │   ├── 01_introduction_and_goals.md
-│       │   ├── 03_context_and_scope.md
-│       │   ├── 05_building_block_view.md
-│       │   └── 08_crosscutting_concepts.md
-│       └── adr/                     # Architecture Decision Records
-│           ├── ADR-000-template.md  # Standard Architecture Decision Record template
-│           ├── ADR-001-vite6-tailwind4.md # Frontend design system decisions
-│           └── ADR-002-ai-hub-and-governance.md # AI Hub runtime vs. agent governance isolation
-│
-├── scripts/                         # Lifecycle, Scaffolding & Maintenance Scripts
-│   ├── bootstrap.mjs                # Idempotent repository scaffolding & governance provisioning
-│   ├── check-nested-modules.mjs     # Invariant verification gate (detects/purges nested node_modules)
-│   ├── compact-sessions.mjs         # Context compaction & archiving for .ai/sessions/
-│   ├── clean.mjs                    # Deep wipe of hoisted node_modules, locks, and build artifacts
-│   └── clean-cache.mjs              # Granular cache clearing (--web, --api, or --all)
-│
-├── .github/                         # Continuous Integration Workflows
-│   ├── copilot-instructions.md      # VS Code GitHub Copilot Workspace Directives
-│   └── workflows/
-│       └── check.yml                # CI verification pipeline (typecheck, lint, test)
-│
-├── .npmrc                           # Hoisting enforcement (install-strategy=hoisted, legacy-peer-deps=true)
-├── AGENTS.md                        # Universal root instructions for autonomous AI agents
-├── package.json                     # Root manifest (workspaces, pre-commit hooks, scripts)
-├── package-lock.json                # Single root hoisted lockfile (Single Source of Truth)
-├── tsconfig.base.json               # Monorepo TypeScript base configuration
-└── README.md                        # Master project documentation
+apps/
+  web/                    React 19 + Vite frontend (port 3000)
+  api/                    Node.js API service (port 4000)
+packages/
+  contracts/              Shared Zod schemas and inferred TypeScript types
+  ai-hub/                 AI profiles, prompts, providers, and guardrails
+.ai/
+  memory.md               Repository invariants and architectural decisions
+  roles/                  Frontend and backend agent directives
+  sessions/               Timestamped agent session records
+docs/
+  specs/srs/              Software requirements and traceability
+  specs/arc42/            Architecture documentation
+  adr/                    Architecture decision records
+scripts/                  Bootstrap, verification, cleanup, and session tools
 ```
 
----
+## Prerequisites
 
-## 3. Centralized AI Architecture & Runtime Governance
+- Node.js 22 LTS
+- npm
+- Optional: PostgreSQL
+- Optional: Redis
 
-To prevent hallucinated dependencies and runtime API security vulnerabilities, the repository enforces a strict two-tier separation between **agent governance** (instructions for AI assistants modifying the codebase) and **application AI** (runtime LLM features consumed by users):
+## Install
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                   REPOSITORY LEVEL: AGENT GOVERNANCE                   │
-│  .ai/memory.md  •  .ai/roles/*.md  •  AGENTS.md  •  .github/copilot...  │
-│  Guides external autonomous agents during code generation & auditing.  │
-└────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼ (Enforces boundaries & quality gates)
-┌────────────────────────────────────────────────────────────────────────┐
-│                 APPLICATION RUNTIME: @workspace/ai-hub                 │
-│  Centralized package managing model profiles, prompts, & token limits  │
-└────────────────────────────────────────────────────────────────────────┘
-          ▲                                              ▲
-          │                                              │
-┌──────────────────┐                           ┌──────────────────┐
-│    apps/web      │                           │     apps/api     │
-│ (Client UI Calls)│                           │(Server Inference)│
-└──────────────────┘                           └──────────────────┘
-```
-
----
-
-## 4. Quickstart & Developer Operations
-
-### One-Command Setup
-To scaffold all directories, copy environment templates, configure `.npmrc`, install hoisted dependencies, and install Git hooks:
+Install only from the repository root. The root `package-lock.json` and `node_modules` are authoritative; nested workspace dependencies are not permitted.
 
 ```bash
 npm run setup
 ```
 
-This single command automatically:
-1. Runs `scripts/bootstrap.mjs` to scaffold missing files, `.env` templates, role directives, and pre-commit hooks.
-2. Auto-purges any accidentally created nested `node_modules/` via `scripts/check-nested-modules.mjs --fix`.
-3. Ensures root `.npmrc` enforces `install-strategy=hoisted` and `legacy-peer-deps=true`.
-4. Installs dependencies into root `/node_modules/` with hoisted strategy.
-5. Installs `simple-git-hooks` pre-commit hooks into `.git/hooks/`.
-6. Executes `npm run check` to verify the baseline with 0 errors.
+`setup` bootstraps the workspace, removes duplicate package trees, performs a hoisted installation, verifies the dependency tree, and runs repository checks.
 
-### Starting Development Servers
-Boot frontend and backend concurrently:
+To install dependencies without bootstrapping:
+
+```bash
+npm install --install-strategy=hoisted --legacy-peer-deps
+```
+
+Add dependencies to the root dependency model using a workspace command:
+
+```bash
+npm install <package> --workspace=@workspace/web
+npm install <package> --workspace=@workspace/api
+npm install <package> --workspace=@workspace/contracts
+npm install <package> --workspace=@workspace/ai-hub
+```
+
+Do not run `npm install` inside an application or package directory.
+
+## Development
+
+Start both applications:
+
 ```bash
 npm run dev
 ```
-- **Web Application**: [http://localhost:3000](http://localhost:3000) (Vite 6 + React 19)
-- **API Server**: [http://localhost:4000](http://localhost:4000) (Node.js 22 LTS + Express)
-- **Health Check**: [http://localhost:4000/api/health](http://localhost:4000/api/health)
 
----
+Or start them separately:
 
-## 5. Daily CLI Commands & Quality Gates
-
-All commands must be executed from the **monorepo root**:
-
-| Command | Description |
-| :--- | :--- |
-| `npm run setup` | One-command onboarding (bootstrap, clean modules, install, verify). |
-| `npm run dev` | Runs both `apps/web` and `apps/api` concurrently with colored logs. |
-| `npm run check` | Unified verification gate: checks modules, types, and lints. |
-| `npm run check:modules` | Verifies zero nested `node_modules` exist across `apps/` and `packages/`. |
-| `npm run clean:modules` | Purges any nested `node_modules/` to restore hoisted invariant. |
-| `npm run check:types` | Typechecks all sub-workspaces via TypeScript project references (`tsc -b`). |
-| `npm run check:lint` | Runs fast code hygiene checks with Oxlint and Oxfmt. |
-| `npm run lint:fix` | Automatically fixes linting issues and formats staged files. |
-| `npm run clean` | Complete deep reset: wipes root `node_modules`, locks, and caches. |
-
----
-
-## 6. Comprehensive Git Guide & Pre-Commit Gates
-
-### Automated Pre-Commit Pipeline
-When you execute `git commit`, `simple-git-hooks` and `lint-staged` automatically run three mandatory quality checks:
-
-1. **`check:modules`**: Verifies that zero nested `node_modules/` exist inside sub-workspaces.
-2. **`lint-staged`**:
-   - `apps/web/**/*.{ts,tsx}`: Auto-linted with `oxlint --fix`.
-   - `apps/api/**/*.{ts,js}`: Auto-linted with `oxlint --fix`.
-   - `packages/**/*.{ts,js}`: Auto-linted with `oxlint --fix`.
-3. **`check:types`**: Recompiles TypeScript across all workspace boundaries to prevent breaking cross-package imports.
-
-### Git Branching & Conventional Commits
-- **Branch Naming**:
-  - `feat/<scope>-<description>` (e.g., `feat/auth-jwt-guard`)
-  - `fix/<scope>-<description>` (e.g., `fix/api-health-cors`)
-  - `docs/<scope>-<description>` (e.g., `docs/adr-003-storage`)
-- **Commit Messages**: Follow standard Conventional Commits:
-  - `feat(api): implement user repository with Drizzle ORM`
-  - `fix(web): prevent duplicate rendering in navigation menu`
-  - `chore(deps): hoist root dependencies and configure .npmrc`
-
----
-
-## 7. Database Architecture & Pluggable Storage
-
-The backend persistence layer (`apps/api/src/db/`) uses a pluggable repository pattern governed by `DB_DRIVER` in `apps/api/.env`:
-
-### Mode A: In-Memory Driver (Default — Zero Dependencies)
-Run offline without Docker, PostgreSQL, or WSL:
-```env
-# apps/api/.env
-NODE_ENV=development
-PORT=4000
-DB_DRIVER=memory
-```
-
-### Mode B: Local or Hosted PostgreSQL
-Connect to local PostgreSQL, Docker, or hosted serverless databases (Neon, Supabase):
-```env
-# apps/api/.env
-NODE_ENV=development
-PORT=4000
-DB_DRIVER=postgres
-DATABASE_URL=postgres://user:password@localhost:5432/app_db
-```
-
-Push schema updates directly:
 ```bash
-npm run db:push --workspace=@workspace/api
-npm run db:studio --workspace=@workspace/api
+npm run dev:web
+npm run dev:api
 ```
 
----
+| Service | URL |
+| --- | --- |
+| Web | http://localhost:3000 |
+| API root | http://localhost:4000 |
+| Health endpoint | http://localhost:4000/api/health |
 
-## 8. Architectural Invariants & Golden Rules
+## Environment Configuration
 
-1. **🚫 Zero Nested `node_modules`**: Never run `npm install` inside `apps/` or `packages/`. All installations must execute from root:
-   ```bash
-   npm install <pkg> --workspace=@workspace/web
-   ```
-2. **📦 Contracts-First**: Never create ad-hoc API interfaces. Export shared Zod schemas and TypeScript types exclusively from `@workspace/contracts`.
-3. **🧠 AI Runtime Isolation**: Consume model endpoints strictly through `@workspace/ai-hub`. Never hardcode LLM SDKs directly in routes or controllers.
-4. **🛡️ OWASP Zero-Trust**: All backend routes validate input with `.strict()` Zod schemas. Frontend JSX auto-escapes tokens and blocks `dangerouslySetInnerHTML`.
-5. **📝 Single Session Audit Trail**: Autonomous agents must log completed work directly in `.ai/sessions/YYYY-MM-DD-<task>.md` using `TEMPLATE.md`.
+The API defaults to port `4000`, the memory database adapter, and the memory cache adapter.
+
+Copy the backend template:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+```
+
+Important API variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `4000` | API listening port |
+| `DB_DRIVER` | `memory` | `memory` or `postgres` |
+| `DATABASE_URL` | unset | PostgreSQL connection string |
+| `JWT_SECRET` | Development value | Secret for authentication-related configuration |
+| `CORS_ORIGIN` | `http://localhost:3000` | Allowed frontend origin |
+| `REDIS_ENABLED` | `false` | Enables the Redis cache adapter |
+| `REDIS_URL` | unset | Redis connection URL |
+| `CACHE_TTL_SECONDS` | `300` | Cache time to live |
+
+`DATABASE_URL` is required when `DB_DRIVER=postgres`.
+
+The frontend environment template is `apps/web/.env.example`. The current frontend health request targets `http://localhost:4000/api/health` directly. AI Hub configuration is documented in `packages/ai-hub/.env.example`; provider credentials must stay server-side and never be exposed to the frontend.
+
+## Architecture
+
+### Shared contracts
+
+`@workspace/contracts` is the source of truth for shared DTOs and Zod validation schemas. Applications should import contracts and inferred types through the workspace package rather than duplicating interfaces.
+
+### Backend
+
+The API uses a port-and-adapter structure:
+
+- Database factory: `apps/api/src/db/factory.ts`
+- User repository port: `apps/api/src/modules/users/user.repository.ts`
+- Memory repository: `apps/api/src/db/adapters/memory.user.repo.ts`
+- PostgreSQL repository: `apps/api/src/db/adapters/postgres.user.repo.ts`
+- Cache factory: `apps/api/src/cache/factory.ts`
+- Memory and Redis cache adapters: `apps/api/src/cache/`
+
+The database factory selects `postgres` or `memory` based on configuration. The cache factory similarly selects Redis only when enabled and otherwise falls back to memory.
+
+The API entrypoint is the Node.js `http` module in `apps/api/src/server.ts`; Express is not currently used.
+
+### Frontend
+
+The web application is a Vite SPA using React 19, Ant Design, and Tailwind CSS. It should import workspace contracts for shared types and must not access database clients or server secrets.
+
+### AI Hub
+
+`@workspace/ai-hub` centralizes provider and profile routing, named prompts, strict schemas, input limits, categorized error envelopes, and timeout/retry configuration.
+
+Application code should call the AI Hub instead of provider SDKs directly. See `packages/ai-hub/README.md` for the package API. Cloud provider entries currently fall back to the mock provider when credentials are unavailable.
+
+## Quality Gates
+
+Run the complete verification suite:
+
+```bash
+npm run check
+```
+
+This runs dependency-integrity checks, TypeScript project-reference checks, and lint/format checks.
+
+Other useful commands:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run check:modules` | Detect nested or duplicate package dependencies |
+| `npm run clean:modules` | Remove detected nested dependency trees |
+| `npm run check:types` | Type-check all TypeScript projects |
+| `npm run check:lint` | Run Oxlint and formatting verification |
+| `npm run lint` | Lint the repository |
+| `npm run lint:fix` | Apply lint and formatting fixes |
+| `npm test` | Run the Vitest suite |
+| `npm run build` | Build all workspaces |
+| `npm run clean` | Remove generated build outputs and caches |
+| `npm run reset` | Clean and run the complete setup again |
+
+The Git pre-commit hook checks duplicate dependencies, runs lint-staged fixes, and performs TypeScript verification.
+
+## Agent Governance
+
+Repository-specific guidance is centralized under `.ai/`:
+
+- `.ai/memory.md` contains durable repository invariants.
+- `.ai/roles/frontend-specialist.md` governs frontend work.
+- `.ai/roles/backend-specialist.md` governs backend work.
+- `.ai/sessions/` records completed task context.
+- `AGENTS.md` defines universal agent boundaries and session audit requirements.
+
+Agents should read `.ai/memory.md` and recent session logs before implementation, then create a session audit after completing a multi-step task or refactor.
+
+## Specifications
+
+Architecture and requirements are documented in:
+
+- [`docs/specs/srs/srs.md`](docs/specs/srs/srs.md)
+- [`docs/specs/srs/traceability-matrix.md`](docs/specs/srs/traceability-matrix.md)
+- [`docs/specs/arc42/`](docs/specs/arc42/)
+- [`docs/adr/`](docs/adr/)

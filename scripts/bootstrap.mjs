@@ -244,7 +244,7 @@ Before marking any frontend task complete, verify against this checklist:
 - [ ] **State Resilience**: Proper error boundaries, empty states, and skeleton loading states for asynchronous API interactions.
 - [ ] **Verification**: Verified under \`npm run typecheck --workspace=@workspace/web\` and \`npm run lint\`.
 `,
-  true
+  false
 );
 
 ensureFile(
@@ -472,7 +472,7 @@ Before marking any backend feature or route complete:
 - [ ] Environment variables are validated at startup via a typed Zod schema.
 - [ ] Passes \`npm run typecheck --workspace=@workspace/api\` with 0 errors.
 `,
-  true
+  false
 );
 
 // 4. .ai/memory.md
@@ -774,11 +774,11 @@ ensureCopy('packages/ai-hub/.env.example', 'packages/ai-hub/.env');
 ensureCopy('apps/web/.env.example', 'apps/web/.env');
 ensureCopy('apps/api/.env.example', 'apps/api/.env');
 
-// 8.5. Provision scripts/check-nested-modules.mjs for CI & pre-commit gates
+// 8.5. Provision scripts/check-duplicate-packages.mjs for CI & pre-commit gates
 ensureFile(
-  'scripts/check-nested-modules.mjs',
+  'scripts/check-duplicate-packages.mjs',
   `/**
- * @file scripts/check-nested-modules.mjs
+ * @file scripts/check-duplicate-packages.mjs
  * @description Pre-commit and CI verification gate ensuring zero nested node_modules exist.
  */
 import { existsSync, rmSync } from 'node:fs';
@@ -828,7 +828,7 @@ if (violations.length > 0) {
   process.exit(0);
 }
 `,
-  true
+  false
 );
 
 // 9. Nested node_modules Invariant Audit
@@ -868,8 +868,8 @@ if (existsSync(packageJsonPath)) {
     // Ensure scripts exist
     pkg.scripts = pkg.scripts || {};
     pkg.scripts.prepare = 'simple-git-hooks';
-    pkg.scripts['check:modules'] = 'node scripts/check-nested-modules.mjs';
-    pkg.scripts['clean:modules'] = 'node scripts/check-nested-modules.mjs --fix';
+    pkg.scripts['check:modules'] = 'node scripts/check-duplicate-packages.mjs';
+    pkg.scripts['clean:modules'] = 'node scripts/check-duplicate-packages.mjs --fix';
     pkg.scripts['check:lint'] = 'oxlint apps/ packages/ && oxfmt --check apps/ packages/';
     pkg.scripts['lint:fix'] = 'oxlint --fix && oxfmt --write';
     pkg.scripts['check:types'] = 'tsc -b packages/contracts packages/ai-hub apps/api apps/web';
@@ -898,8 +898,14 @@ if (existsSync(packageJsonPath)) {
       }
     }
 
+    // Ensure Redis runtime and typing dependencies are managed by the root manifest.
+    pkg.dependencies = pkg.dependencies || {};
+    pkg.devDependencies = pkg.devDependencies || {};
+    pkg.dependencies.ioredis = pkg.dependencies.ioredis || '6.0.0';
+    pkg.devDependencies['@types/ioredis'] = pkg.devDependencies['@types/ioredis'] || '4.28.10';
+
     writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
-    console.log('   ✅ [Updated] Root package.json configured with simple-git-hooks & lint-staged.');
+    console.log('   ✅ [Updated] Root package.json configured with Redis, simple-git-hooks & lint-staged.');
   } catch (err) {
     console.warn('   ⚠️ [Warning] Could not update root package.json: ' + err.message);
   }
@@ -911,14 +917,14 @@ if (existsSync(packageJsonPath)) {
     workspaces: ['apps/*', 'packages/*'],
     scripts: {
       prepare: 'simple-git-hooks',
-      setup: 'node scripts/bootstrap.mjs && node scripts/check-nested-modules.mjs --fix && npm install --install-strategy=hoisted --legacy-peer-deps && node scripts/check-nested-modules.mjs --fix && npm run check',
+      setup: 'node scripts/bootstrap.mjs && node scripts/check-duplicate-packages.mjs --fix && npm install --install-strategy=hoisted --legacy-peer-deps && node scripts/check-duplicate-packages.mjs --fix && npm run check',
       dev: 'concurrently -k -p "[{name}]" -n "web,api" -c "cyan.bold,green.bold" "npm run dev:web" "npm run dev:api"',
       'dev:web': 'npm run dev --workspace=@workspace/web',
       'dev:api': 'npm run dev --workspace=@workspace/api',
       lint: 'oxlint',
       'lint:fix': 'oxlint --fix && oxfmt --write',
-      'check:modules': 'node scripts/check-nested-modules.mjs',
-      'clean:modules': 'node scripts/check-nested-modules.mjs --fix',
+      'check:modules': 'node scripts/check-duplicate-packages.mjs',
+      'clean:modules': 'node scripts/check-duplicate-packages.mjs --fix',
       'check:lint': 'oxlint apps/ packages/ && oxfmt --check apps/ packages/',
       'check:types': 'tsc -b packages/contracts packages/ai-hub apps/api apps/web',
       check: 'npm run check:modules && npm run check:types && npm run check:lint'
@@ -937,7 +943,11 @@ if (existsSync(packageJsonPath)) {
       oxlint: '^0.15.11',
       oxfmt: '^0.0.19',
       concurrently: '^9.1.2',
-      typescript: '^5.7.3'
+      typescript: '^5.7.3',
+      '@types/ioredis': '4.28.10'
+    },
+    dependencies: {
+      ioredis: '6.0.0'
     }
   };
   writeFileSync(packageJsonPath, JSON.stringify(defaultPkg, null, 2) + '\n', 'utf-8');
