@@ -7,7 +7,7 @@ A production-oriented TypeScript monorepo designed for human developers and AI c
 - Node.js 22 LTS and TypeScript 5.7+
 - Vite 6 and React 19 frontend
 - Tailwind CSS 4 and Ant Design 5
-- Node HTTP API with TSX
+- Express API with TSX
 - Drizzle ORM and PostgreSQL or an in-memory repository
 - Redis or an in-memory cache adapter
 - Zod contracts in a shared workspace package
@@ -88,6 +88,11 @@ npm run dev:api
 | Web | http://localhost:3000 |
 | API root | http://localhost:4000 |
 | Health endpoint | http://localhost:4000/api/health |
+| Readiness endpoint | http://localhost:4000/api/health/ready |
+
+The API also exposes liveness at `/api/health/live`. Health responses use the shared `{ "success": true, "data": ... }` API envelope.
+
+The frontend reads `VITE_API_URL` and defaults to `http://localhost:4000`.
 
 ## Environment Configuration
 
@@ -110,11 +115,10 @@ Important API variables:
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed frontend origin |
 | `REDIS_ENABLED` | `false` | Enables the Redis cache adapter |
 | `REDIS_URL` | unset | Redis connection URL |
-| `CACHE_TTL_SECONDS` | `300` | Cache time to live |
 
 `DATABASE_URL` is required when `DB_DRIVER=postgres`.
 
-The frontend environment template is `apps/web/.env.example`. The current frontend health request targets `http://localhost:4000/api/health` directly. AI Hub configuration is documented in `packages/ai-hub/.env.example`; provider credentials must stay server-side and never be exposed to the frontend.
+The frontend environment template is `apps/web/.env.example`. AI Hub configuration is documented in `packages/ai-hub/.env.example`; provider credentials must stay server-side and never be exposed to the frontend.
 
 ## Architecture
 
@@ -135,7 +139,16 @@ The API uses a port-and-adapter structure:
 
 The database factory selects `postgres` or `memory` based on configuration. The cache factory similarly selects Redis only when enabled and otherwise falls back to memory.
 
-The API entrypoint is the Node.js `http` module in `apps/api/src/server.ts`; Express is not currently used.
+The API entrypoint is `apps/api/src/server.ts`. It configures Express JSON parsing, CORS, request logging, rate limiting, standardized responses, and graceful cache and repository shutdown.
+
+It exposes:
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /` | Service status and endpoint summary |
+| `GET /api/health` | General health check |
+| `GET /api/health/live` | Process liveness and uptime |
+| `GET /api/health/ready` | Cache readiness; returns HTTP 503 when degraded |
 
 ### Frontend
 
@@ -146,6 +159,32 @@ The web application is a Vite SPA using React 19, Ant Design, and Tailwind CSS. 
 `@workspace/ai-hub` centralizes provider and profile routing, named prompts, strict schemas, input limits, categorized error envelopes, and timeout/retry configuration.
 
 Application code should call the AI Hub instead of provider SDKs directly. See `packages/ai-hub/README.md` for the package API. Cloud provider entries currently fall back to the mock provider when credentials are unavailable.
+
+## Docker
+
+Build and start PostgreSQL, Redis, the API, and the web application:
+
+```bash
+docker compose up --build
+```
+
+Stop the containers while retaining named volumes:
+
+```bash
+docker compose down
+```
+
+The API container runs Drizzle migrations before starting the server. The web container builds with `VITE_API_URL=/api` and Nginx proxies `/api` requests to the API service.
+
+Default Docker URLs:
+
+| Service | URL |
+| --- | --- |
+| Web | http://localhost:3000 |
+| API | http://localhost:4000 |
+| API through web proxy | http://localhost:3000/api/health |
+
+Before production use, replace the Compose `JWT_SECRET` and database credentials rather than relying on the development defaults.
 
 ## Quality Gates
 
@@ -165,10 +204,10 @@ Other useful commands:
 | `npm run clean:modules` | Remove detected nested dependency trees |
 | `npm run check:types` | Type-check all TypeScript projects |
 | `npm run check:lint` | Run Oxlint and formatting verification |
+| `npm run build` | Build every workspace with a build script |
 | `npm run lint` | Lint the repository |
 | `npm run lint:fix` | Apply lint and formatting fixes |
 | `npm test` | Run the Vitest suite |
-| `npm run build` | Build all workspaces |
 | `npm run clean` | Remove generated build outputs and caches |
 | `npm run reset` | Clean and run the complete setup again |
 
