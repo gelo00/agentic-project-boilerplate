@@ -1,30 +1,48 @@
-import { ICacheService } from './types.js';
+import { ICacheService } from "./types.js"
+
+interface CacheItem {
+  value: unknown
+  expiresAt: number
+}
 
 export class MemoryCacheService implements ICacheService {
-  private cache = new Map<string, { value: any; expiresAt: number }>();
+  private cache = new Map<string, CacheItem>()
 
-  async get<T>(key: string): Promise<T | null> {
-    const item = this.cache.get(key);
-    if (!item) return null;
+  async get<T,>(key: string): Promise<T | null> {
+    const item = this.cache.get(key)
+
+    if (!item) return null
+
     if (Date.now() > item.expiresAt) {
-      this.cache.delete(key);
-      return null;
+      this.cache.delete(key)
+
+      return null
     }
-    return item.value as T;
+
+    return item.value as T
   }
 
-  async set<T>(key: string, value: T, ttlSeconds: number = 300): Promise<void> {
+  async set<T,>(
+    key: string,
+    value: T,
+    ttlSeconds: number = 300,
+  ): Promise<void> {
     this.cache.set(key, {
       value,
+
       expiresAt: Date.now() + ttlSeconds * 1000,
-    });
+    })
   }
 
   async del(key: string): Promise<void> {
-    this.cache.delete(key);
+    this.cache.delete(key)
   }
 
   async isHealthy(): Promise<boolean> {
-    return true;
+    return true
+  }
+
+  async close(): Promise<void> {
+    this.cache.clear()
   }
 }

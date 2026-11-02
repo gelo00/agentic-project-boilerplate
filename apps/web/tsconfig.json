@@ -23,9 +23,8 @@
 
     /* Paths & Scoping */
     "rootDir": "src",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@workspace/contracts": ["../../packages/contracts/src/index.ts"],
       "@workspace/ai-hub": ["../../packages/ai-hub/src/index.ts"]
     }

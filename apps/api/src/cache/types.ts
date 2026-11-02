@@ -1,6 +1,11 @@
 export interface ICacheService {
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>;
-  del(key: string): Promise<void>;
-  isHealthy(): Promise<boolean>;
+  get<T>(key: string): Promise<T | null>
+
+  set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>
+
+  del(key: string): Promise<void>
+
+  isHealthy(): Promise<boolean>
+
+  close(): Promise<void>
 }

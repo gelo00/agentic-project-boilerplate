@@ -1,10 +1,15 @@
-import { defineConfig } from 'drizzle-kit';
+import { defineConfig } from "drizzle-kit"
 
 export default defineConfig({
-  schema: './src/db/schema.ts',
-  out: './drizzle',
-  dialect: 'postgresql',
+  schema: "./src/db/schema/postgres.schema.ts",
+
+  out: "./src/db/migrations",
+
+  dialect: "postgresql",
+
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/app_db',
+    url:
+      process.env.DATABASE_URL ||
+      "postgres://postgres:postgres@localhost:5432/app_db",
   },
-});
+})

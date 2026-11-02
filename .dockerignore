@@ -1,0 +1,6 @@
+.git
+.ai
+.github
+node_modules
+dist
+*.tsbuildinfo
